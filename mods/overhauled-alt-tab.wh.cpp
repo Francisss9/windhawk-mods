@@ -889,7 +889,7 @@ static void InitHotkeyMessage();
 // key-up cuando el foreground es una ventana elevada.
 static const UINT_PTR kModifierReleasePollTimerId = 1;
 static const UINT kModifierReleasePollMs = 30;
-static const int kModifierReleaseTicks = 5;
+static const int kModifierReleaseTicks = 2; // Responsive 60ms release debounce (2 ticks @ 30ms)
 static const UINT_PTR kActivationRetryTimerId = 2;
 static const UINT kActivationRetryMs = 50;
 static const int kMaxActivationRetries = 20;
@@ -1930,6 +1930,8 @@ static bool IsRealUserApplicationWindow(HWND hwnd, DWORD* processId,
 
     DWORD pid = 0;
     if (!GetWindowThreadProcessId(hwnd, &pid) || pid == 0)
+        return false;
+    if (pid == GetCurrentProcessId())
         return false;
 
     if (ownedOrToolWindow)
@@ -4161,8 +4163,12 @@ static void UpdateSelectorMotion()
             g_cardExitSlot = -1;
             g_cardExitTarget = nullptr;
             g_selectorAnimation = SelectorAnimationState::Open;
-            if (target && IsWindow(target) && PostMessageW(target, WM_CLOSE, 0, 0))
+            if (target && IsWindow(target))
+            {
+                PostMessageW(target, WM_SYSCOMMAND, SC_CLOSE, 0);
+                PostMessageW(target, WM_CLOSE, 0, 0);
                 MarkWindowPendingClose(target);
+            }
             for (size_t i = 0; i < g_userWindows.size(); ++i)
             {
                 if (g_userWindows[i].hwnd == target)
@@ -5638,6 +5644,7 @@ static LRESULT CALLBACK SelectorWndProc(HWND hwnd, UINT message, WPARAM wParam, 
         case VK_DOWN:
             SelectNext();
             return 0;
+        case VK_SPACE:
         case VK_RETURN:
             ConfirmSelection();
             return 0;
@@ -5977,7 +5984,7 @@ static bool CreateSelector(bool shiftHeld)
 
     POINT cursorPt = {};
     GetCursorPos(&cursorPt);
-    HMONITOR monitor = (g_selectorOriginWindow && IsWindow(g_selectorOriginWindow))
+    HMONITOR monitor = (g_selectorOriginWindow && IsWindow(g_selectorOriginWindow) && !IsIconic(g_selectorOriginWindow))
                            ? MonitorFromWindow(g_selectorOriginWindow, MONITOR_DEFAULTTONEAREST)
                            : MonitorFromPoint(cursorPt, MONITOR_DEFAULTTONEAREST);
     if (!monitor)
@@ -6784,14 +6791,24 @@ static void InputEndSession(UINT command)
 
 static bool SessionModifierReleased()
 {
+    const bool anyAlt = (GetAsyncKeyState(VK_MENU) & 0x8000) != 0;
+
     if (g_sessionModifier == ModifierSession::LeftAlt)
-        return !g_altLeftDown;
+    {
+        if (anyAlt && (GetAsyncKeyState(VK_LMENU) & 0x8000) != 0)
+            return false;
+        return !g_altLeftDown && !anyAlt;
+    }
 
     if (g_sessionModifier == ModifierSession::RightAlt)
-        return !g_altRightDown;
+    {
+        if (anyAlt && (GetAsyncKeyState(VK_RMENU) & 0x8000) != 0)
+            return false;
+        return !g_altRightDown && !anyAlt;
+    }
 
     if (g_sessionModifier == ModifierSession::ControlAlt)
-        return !g_altLeftDown && !g_altRightDown &&
+        return (!g_altLeftDown && !g_altRightDown && !anyAlt) &&
                !g_ctrlLeftDown && !g_ctrlRightDown;
 
     return false;
