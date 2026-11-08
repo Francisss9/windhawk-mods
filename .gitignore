@@ -1,0 +1,6 @@
+build/
+*.dll
+*.o
+*.obj
+*.bak
+.vscode/
