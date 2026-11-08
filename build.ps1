@@ -41,8 +41,8 @@ if (-not (Test-Path $OutDir)) { New-Item -ItemType Directory -Path $OutDir -Forc
 $Out64 = Join-Path $OutDir "$ModName-x64.dll"
 $Out32 = Join-Path $OutDir "$ModName-x86.dll"
 
-$DefId = "-DWH_MOD_ID=L\`"$ModName\`""
-$DefVer = "-DWH_MOD_VERSION=L\`"2.0.0\`""
+$DefId = '-DWH_MOD_ID=L"' + $ModName + '"'
+$DefVer = '-DWH_MOD_VERSION=L"2.0.0"'
 
 Write-Host "[1/2] Compiling 64-bit (x86_64)..." -ForegroundColor Yellow
 & $Clang `

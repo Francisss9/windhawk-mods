@@ -3,7 +3,7 @@
 // @name            Overhauled Alt+Tab
 // @description     A modern, robust, and fluid window switcher for Windows 11 with Direct2D, per-window previews, and low latency.
 // @version         2.0.0
-// @author          Francisgomex
+// @author          Francisgomex (Based on IMiloDev)
 // @github          https://github.com/Francisss9
 // @homepage        https://github.com/Francisss9/windhawk-mods
 // @include         windhawk.exe
@@ -13,8 +13,25 @@
 
 // ==WindhawkModReadme==
 /*
-# Overhaulded Task Switcher 
+# Overhauled Alt+Tab (v2.0.0 Overhaul)
 
+A modern, fluid and highly visual replacement for the native Windows Alt+Tab experience on Windows 11.
+
+### Enhancements & Hardening in v2.0.0 by Francisgomex:
+- **Zero GDI & COM Resource Leaks**: Direct2D/DirectWrite/GDI rendering pipelines encapsulated with strict RAII scopes.
+- **Dynamic Multi-Monitor & DPI Synchronization**: Auto-adapts selector coordinates and layout across multi-monitor setups upon WM_DPICHANGED and display geometry changes.
+- **Elevated Window Focus**: Overcomes Windows 11 foreground lock restrictions via AttachThreadInput bridging to reliably switch focus to administrative processes.
+- **Sub-30 Line Architecture**: Monolithic drawing pipeline refactored into modular sub-renderers meeting clean code quality standards.
+- **Navigation Coalescence & Debouncing**: Clean mouse and keyboard event filtering prevents accidental double-jumps.
+- **Instant Close Command**: Decoupled UI transition logic from window destruction to ensure snappy, immediate window closures.
+
+## Credits & Attribution:
+- Original project and core visual architecture by **[IMiloDev](https://github.com/IMiloDev)** ([OverhauldedWin Repository](https://github.com/IMiloDev/OverhauldedWin)).
+- Maintained, audited, and overhauled by **[Francisgomex](https://github.com/Francisss9)** in the **[windhawk-mods](https://github.com/Francisss9/windhawk-mods)** repository.
+
+---
+
+### Original Overview (IMiloDev)
 A modern, fluid and highly visual replacement for the native Windows Alt+Tab experience.
 
 Built from scratch in native C++ as a project to explore Windows APIs, graphics, animation systems and desktop customization. You can also see the original [GITHUB REPOSITORY](https://github.com/IMiloDev/OverhauldedWin) to send me issues.
