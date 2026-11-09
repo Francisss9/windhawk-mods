@@ -3917,15 +3917,6 @@ static bool IsSelectionExpansionActive()
     return g_selectionExpansionActive &&
            g_selectorAnimation == SelectorAnimationState::SelectionExpansion;
 }
-static RECT LerpRect(const RECT& a, const RECT& b, float t)
-{
-    RECT result = {};
-    result.left = static_cast<LONG>(roundf(a.left + (b.left - a.left) * t));
-    result.top = static_cast<LONG>(roundf(a.top + (b.top - a.top) * t));
-    result.right = static_cast<LONG>(roundf(a.right + (b.right - a.right) * t));
-    result.bottom = static_cast<LONG>(roundf(a.bottom + (b.bottom - a.bottom) * t));
-    return result;
-}
 
 // 100 ms for a target close to the preview and up to 300 ms for a large/far
 // target. Size and center travel are normalized to the work area; fullscreen
