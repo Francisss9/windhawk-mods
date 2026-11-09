@@ -669,6 +669,8 @@ static POINT g_selectionExpansionSceneOffset = {};
 // tarjeta visible hasta ese destino, sin crear otro renderer ni otra ventana.
 static bool g_selectionExpansionActive = false;
 static bool g_selectionExpansionFinishPending = false;
+static bool g_selectionExpansionPreactivated = false;
+static float g_selectionExpansionThumbnailOpacity = 1.0f;
 static float g_selectionExpansionDurationMs = 300.0f;
 static HWND g_selectionExpansionTarget = nullptr;
 static RECT g_selectionExpansionStartRect = {};
@@ -3660,6 +3662,13 @@ static void UpdateThumbnailProperties(int slot, const RECT& area, HWND source)
     float thumbnailOpacity = g_sceneOpacity;
     if (g_cardExitActive && slot == g_cardExitSlot)
         thumbnailOpacity *= GetCardExitOpacity();
+    if (g_selectionExpansionActive)
+    {
+        if (slot == GetCarouselCenterSlot())
+            thumbnailOpacity = g_selectionExpansionThumbnailOpacity;
+        else
+            thumbnailOpacity = 0.0f;
+    }
     properties.opacity = static_cast<BYTE>(std::max(0, std::min(255,
         static_cast<int>(roundf(thumbnailOpacity * 255.0f)))));
 
@@ -3955,7 +3964,7 @@ static float CalculateSelectionExpansionDurationMs(
         sqrtf(centerDx * centerDx + centerDy * centerDy) / maxCenterDistance);
 
     const float distance = std::max(sizeDistance, positionDistance);
-    return 220.0f + 160.0f * std::max(0.0f, std::min(1.0f, distance));
+    return 180.0f + 70.0f * std::max(0.0f, std::min(1.0f, distance));
 }
 
 static void StartSelectionExpansion(HWND target, bool targetWasMinimized)
@@ -4131,6 +4140,8 @@ static void StartSelectionExpansion(HWND target, bool targetWasMinimized)
     }
     g_selectionExpansionActive = true;
     g_selectionExpansionFinishPending = false;
+    g_selectionExpansionPreactivated = false;
+    g_selectionExpansionThumbnailOpacity = 1.0f;
     g_selectionExpansionTarget = target;
     g_selectionExpansionWorkRect = work;
     g_selectionExpansionSceneOffset = POINT{
@@ -4246,6 +4257,36 @@ static void UpdateSelectionExpansion()
         // Switcher container smoothly dissolves away during the first 55% of expansion
         g_sceneOpacity = std::max(0.0f, 1.0f - Clamp01(raw / 0.55f));
 
+        // Pre-activate target window underneath the selector at 70% expansion to eliminate handoff gap
+        if (raw >= 0.70f && !g_selectionExpansionPreactivated)
+        {
+            g_selectionExpansionPreactivated = true;
+            HWND target = g_selectionExpansionTarget;
+            if (target && IsWindow(target))
+            {
+                DWORD targetPid = 0;
+                GetWindowThreadProcessId(target, &targetPid);
+                if (targetPid != 0)
+                    AllowSetForegroundWindow(targetPid);
+
+                if (IsIconic(target))
+                    ShowWindowAsync(target, SW_RESTORE);
+
+                SetWindowPos(target, HWND_TOP, 0, 0, 0, 0,
+                             SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW | SWP_NOACTIVATE | SWP_ASYNCWINDOWPOS);
+            }
+        }
+
+        // Fast cross-dissolve of the thumbnail into the live window between 85% and 100%
+        if (raw >= 0.85f)
+        {
+            g_selectionExpansionThumbnailOpacity = std::max(0.0f, 1.0f - (raw - 0.85f) / 0.15f);
+        }
+        else
+        {
+            g_selectionExpansionThumbnailOpacity = 1.0f;
+        }
+
         if (raw >= 1.0f)
             g_selectionExpansionFinishPending = true;
     }
@@ -4253,6 +4294,8 @@ static void UpdateSelectionExpansion()
     {
         HWND target = g_selectionExpansionTarget;
         g_selectionExpansionActive = false;
+        g_selectionExpansionPreactivated = false;
+        g_selectionExpansionThumbnailOpacity = 1.0f;
         InterlockedExchange(&g_selectionTransitionActive, 0);
         g_selectionExpansionTarget = nullptr;
         g_pendingActivationTarget = nullptr;
@@ -6227,6 +6270,8 @@ static void HideSelectorForSession()
     g_cardExitTarget = nullptr;
     g_selectionExpansionActive = false;
     g_selectionExpansionFinishPending = false;
+    g_selectionExpansionPreactivated = false;
+    g_selectionExpansionThumbnailOpacity = 1.0f;
     g_selectionExpansionTarget = nullptr;
     g_selectionExpansionDestinationRect = {};
     g_selectionExpansionSceneOffset = {};
@@ -6678,6 +6723,8 @@ static void CancelSelection()
     {
         HWND restore = FocusRestoreTarget();
         g_selectionExpansionActive = false;
+        g_selectionExpansionPreactivated = false;
+        g_selectionExpansionThumbnailOpacity = 1.0f;
         InterlockedExchange(&g_selectionTransitionActive, 0);
         g_selectionExpansionTarget = nullptr;
         g_pendingActivationTarget = nullptr;
