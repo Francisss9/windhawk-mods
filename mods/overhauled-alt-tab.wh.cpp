@@ -479,8 +479,17 @@ static void LoadTaskSwitcherSettings()
     g_animationStyle = style == L"Bouncy" ? AnimationStyle::Bouncy
                      : style == L"RCT" ? AnimationStyle::Rct
                      : AnimationStyle::Linear;
-    g_expandSelectedWindow =
-        Wh_GetIntSetting(L"Appearance.Cards.ExpandSelectedWindow") != 0;
+    PCWSTR expandSetting = Wh_GetStringSetting(L"Appearance.Cards.ExpandSelectedWindow");
+    if (expandSetting)
+    {
+        g_expandSelectedWindow = (wcscmp(expandSetting, L"0") != 0 &&
+                                  _wcsicmp(expandSetting, L"false") != 0);
+        Wh_FreeStringSetting(expandSetting);
+    }
+    else
+    {
+        g_expandSelectedWindow = true;
+    }
 
     PCWSTR moveCursorSetting = Wh_GetStringSetting(L"Interaction.MoveCursorToActiveWindow");
     if (moveCursorSetting)
@@ -611,6 +620,11 @@ static float EaseOutCubic(float t)
     float u = 1.0f - Clamp01(t);
     return 1.0f - u * u * u;
 }
+static float EaseInOutCubic(float t)
+{
+    t = Clamp01(t);
+    return (t < 0.5f) ? (4.0f * t * t * t) : (1.0f - powf(-2.0f * t + 2.0f, 3.0f) * 0.5f);
+}
 // Salida exponencial normalizada: velocidad inicial máxima (respuesta inmediata),
 // llega exactamente a 1.0 en t=1 y no tiene overshoot. k controla la agresividad.
 static float EaseOutExp(float t, float k)
@@ -661,6 +675,12 @@ static RECT g_selectionExpansionStartRect = {};
 static RECT g_selectionExpansionRect = {};
 static RECT g_selectionExpansionDestinationRect = {};
 static RECT g_selectionExpansionWorkRect = {};
+struct SelectionFloatPoint { float x; float y; };
+struct SelectionFloatSize { float cx; float cy; };
+static SelectionFloatPoint g_selectionExpansionStartCenter = {};
+static SelectionFloatSize g_selectionExpansionStartSize = {};
+static SelectionFloatPoint g_selectionExpansionDestCenter = {};
+static SelectionFloatSize g_selectionExpansionDestSize = {};
 static double g_selectionExpansionStart = 0.0;
 static float g_selectionExpansionProgress = 0.0f;
 // Progreso común de la escena: 0 = oculta/colapsada, 1 = completamente abierta.
@@ -3944,7 +3964,7 @@ static float CalculateSelectionExpansionDurationMs(
         sqrtf(centerDx * centerDx + centerDy * centerDy) / maxCenterDistance);
 
     const float distance = std::max(sizeDistance, positionDistance);
-    return 100.0f + 200.0f * std::max(0.0f, std::min(1.0f, distance));
+    return 220.0f + 160.0f * std::max(0.0f, std::min(1.0f, distance));
 }
 
 static void StartSelectionExpansion(HWND target, bool targetWasMinimized)
@@ -3962,6 +3982,12 @@ static void StartSelectionExpansion(HWND target, bool targetWasMinimized)
         CleanupKeyboardState();
         return;
     }
+
+    // Stop any ongoing carousel slide so preview calculation uses the true dead center.
+    g_animActive = false;
+    g_animOffset = 0.0f;
+    g_animStartOffset = 0.0f;
+
     HMONITOR monitor = MonitorFromWindow(target, MONITOR_DEFAULTTONEAREST);
     MONITORINFO monitorInfo = {};
     monitorInfo.cbSize = sizeof(monitorInfo);
@@ -4011,22 +4037,8 @@ static void StartSelectionExpansion(HWND target, bool targetWasMinimized)
         CleanupKeyboardState();
         return;
     }
-    // GetWindowRect puede incluir los bordes invisibles de redimensionado.
-    // DWMWA_EXTENDED_FRAME_BOUNDS da los límites físicos que realmente se ven,
-    // evitando que el thumbnail termine desplazado respecto a la ventana.
-    if (!IsIconic(target) && LoadDwmFunctions() && g_dwmGetWindowAttribute)
-    {
-        RECT visibleFrame = {};
-        if (SUCCEEDED(g_dwmGetWindowAttribute(
-                target, kDwmWaExtendedFrameBounds,
-                &visibleFrame, sizeof(visibleFrame))) &&
-            visibleFrame.left < visibleFrame.right &&
-            visibleFrame.top < visibleFrame.bottom)
-        {
-            targetWindowRect = visibleFrame;
-        }
-    }
-    if (targetWasMinimized && IsIconic(target))
+
+    if (targetWasMinimized || IsIconic(target))
     {
         // La restauración ocurre en paralelo a la animación: no esperamos a que
         // el hilo de la aplicación atienda ShowWindowAsync. GetWindowRect puede
@@ -4054,7 +4066,7 @@ static void StartSelectionExpansion(HWND target, bool targetWasMinimized)
                 }
             }
 
-            if (placement.flags & WPF_RESTORETOMAXIMIZED)
+            if ((placement.flags & WPF_RESTORETOMAXIMIZED) || (placement.showCmd == SW_SHOWMAXIMIZED))
             {
                 targetWindowRect = monitorInfo.rcWork;
                 haveNormalRect = true;
@@ -4076,8 +4088,26 @@ static void StartSelectionExpansion(HWND target, bool targetWasMinimized)
         if (restoreMonitor && GetMonitorInfoW(restoreMonitor, &restoreMonitorInfo))
         {
             monitorInfo = restoreMonitorInfo;
-            if (haveNormalRect && (placement.flags & WPF_RESTORETOMAXIMIZED))
+            if (haveNormalRect && ((placement.flags & WPF_RESTORETOMAXIMIZED) || (placement.showCmd == SW_SHOWMAXIMIZED)))
                 targetWindowRect = monitorInfo.rcWork;
+        }
+    }
+    else if (IsZoomed(target))
+    {
+        targetWindowRect = monitorInfo.rcWork;
+    }
+    else if (LoadDwmFunctions() && g_dwmGetWindowAttribute)
+    {
+        // GetWindowRect puede incluir los bordes invisibles de redimensionado.
+        // DWMWA_EXTENDED_FRAME_BOUNDS da los límites físicos que realmente se ven.
+        RECT visibleFrame = {};
+        if (SUCCEEDED(g_dwmGetWindowAttribute(
+                target, kDwmWaExtendedFrameBounds,
+                &visibleFrame, sizeof(visibleFrame))) &&
+            visibleFrame.left < visibleFrame.right &&
+            visibleFrame.top < visibleFrame.bottom)
+        {
+            targetWindowRect = visibleFrame;
         }
     }
     RECT expansionSourceRect = preview;
@@ -4165,6 +4195,24 @@ static void StartSelectionExpansion(HWND target, bool targetWasMinimized)
             targetWindowRect.bottom - clientAfterOrigin.y };
         g_selectionExpansionRect = g_selectionExpansionStartRect;
     }
+
+    const float startW = static_cast<float>(std::max(1L, g_selectionExpansionStartRect.right - g_selectionExpansionStartRect.left));
+    const float startH = static_cast<float>(std::max(1L, g_selectionExpansionStartRect.bottom - g_selectionExpansionStartRect.top));
+    const float destW = static_cast<float>(std::max(1L, g_selectionExpansionDestinationRect.right - g_selectionExpansionDestinationRect.left));
+    const float destH = static_cast<float>(std::max(1L, g_selectionExpansionDestinationRect.bottom - g_selectionExpansionDestinationRect.top));
+
+    g_selectionExpansionStartCenter = SelectionFloatPoint{
+        static_cast<float>(g_selectionExpansionStartRect.left) + startW * 0.5f,
+        static_cast<float>(g_selectionExpansionStartRect.top) + startH * 0.5f
+    };
+    g_selectionExpansionStartSize = SelectionFloatSize{ startW, startH };
+
+    g_selectionExpansionDestCenter = SelectionFloatPoint{
+        static_cast<float>(g_selectionExpansionDestinationRect.left) + destW * 0.5f,
+        static_cast<float>(g_selectionExpansionDestinationRect.top) + destH * 0.5f
+    };
+    g_selectionExpansionDestSize = SelectionFloatSize{ destW, destH };
+
     g_selectionExpansionDurationMs = CalculateSelectionExpansionDurationMs(
         g_selectionExpansionStartRect, g_selectionExpansionDestinationRect,
         g_selectionExpansionWorkRect);
@@ -4181,14 +4229,32 @@ static void UpdateSelectionExpansion()
     {
         const float raw = ElapsedFraction(g_selectionExpansionStart,
                                            AnimationDuration(g_selectionExpansionDurationMs));
-        // Misma estrategia de desplazamiento agresivo usada por el renderer:
-        // respuesta inmediata, avance fuerte al inicio y llegada exacta al
-        // destino sin overshoot ni rebote adicional.
-        const float eased = EaseOutExp(raw, 7.0f);
-        g_selectionExpansionProgress = eased;
-        g_selectionExpansionRect = LerpRect(g_selectionExpansionStartRect,
-                                             g_selectionExpansionDestinationRect,
-                                             eased);
+        // Center-Anchored Expansion:
+        // Size expands with responsive EaseOutCubic
+        const float sizeT = EaseOutCubic(raw);
+        // Center drifts with smooth EaseInOutCubic to eliminate initial jerk/lurch
+        const float posT = EaseInOutCubic(raw);
+
+        g_selectionExpansionProgress = sizeT;
+
+        const float curCenterX = g_selectionExpansionStartCenter.x +
+            (g_selectionExpansionDestCenter.x - g_selectionExpansionStartCenter.x) * posT;
+        const float curCenterY = g_selectionExpansionStartCenter.y +
+            (g_selectionExpansionDestCenter.y - g_selectionExpansionStartCenter.y) * posT;
+
+        const float curWidth = g_selectionExpansionStartSize.cx +
+            (g_selectionExpansionDestSize.cx - g_selectionExpansionStartSize.cx) * sizeT;
+        const float curHeight = g_selectionExpansionStartSize.cy +
+            (g_selectionExpansionDestSize.cy - g_selectionExpansionStartSize.cy) * sizeT;
+
+        g_selectionExpansionRect.left = static_cast<LONG>(roundf(curCenterX - curWidth * 0.5f));
+        g_selectionExpansionRect.right = static_cast<LONG>(roundf(curCenterX + curWidth * 0.5f));
+        g_selectionExpansionRect.top = static_cast<LONG>(roundf(curCenterY - curHeight * 0.5f));
+        g_selectionExpansionRect.bottom = static_cast<LONG>(roundf(curCenterY + curHeight * 0.5f));
+
+        // Switcher container smoothly dissolves away during the first 55% of expansion
+        g_sceneOpacity = std::max(0.0f, 1.0f - Clamp01(raw / 0.55f));
+
         if (raw >= 1.0f)
             g_selectionExpansionFinishPending = true;
     }
@@ -5492,6 +5558,9 @@ static void PaintCardsCarouselD2D()
 {
     for (int slot = 0; slot < GetCarouselSlotCount(); ++slot)
     {
+        if (g_selectionExpansionActive && slot == GetCarouselCenterSlot())
+            continue;
+
         int index = ResolveGroupIndex(slot);
         if (index < 0)
             continue;
@@ -5627,7 +5696,7 @@ static void PaintSelectorScene(HWND hwnd, HDC hdc)
         g_d2dDCRenderTarget->SetAntialiasMode(D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
         g_d2dDCRenderTarget->Clear(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f));
 
-        if (g_selectionExpansionActive)
+        if (g_selectionExpansionActive && g_sceneOpacity <= 0.01f)
         {
             const HRESULT drawResult = g_d2dDCRenderTarget->EndDraw();
             if (drawResult == static_cast<HRESULT>(0x8899000C)) // D2DERR_RECREATE_TARGET
@@ -5636,9 +5705,12 @@ static void PaintSelectorScene(HWND hwnd, HDC hdc)
         }
 
         RECT sceneRect = { 0, 0, g_runtimeSelectorWidth, g_runtimeSelectorHeight };
-        g_d2dDCRenderTarget->PushAxisAlignedClip(
-            D2D1::RectF(0.0f, 0.0f, static_cast<float>(sceneRect.right), static_cast<float>(sceneRect.bottom)),
-            D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
+        if (!g_selectionExpansionActive)
+        {
+            g_d2dDCRenderTarget->PushAxisAlignedClip(
+                D2D1::RectF(0.0f, 0.0f, static_cast<float>(sceneRect.right), static_cast<float>(sceneRect.bottom)),
+                D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
+        }
 
         float sceneScaleX = 1.0f, sceneScaleY = 1.0f;
         GetSceneScale(sceneScaleX, sceneScaleY);
@@ -5664,7 +5736,8 @@ static void PaintSelectorScene(HWND hwnd, HDC hdc)
             g_d2dDCRenderTarget->PopLayer();
 
         g_d2dDCRenderTarget->SetTransform(D2D1::Matrix3x2F::Identity());
-        g_d2dDCRenderTarget->PopAxisAlignedClip();
+        if (!g_selectionExpansionActive)
+            g_d2dDCRenderTarget->PopAxisAlignedClip();
         const HRESULT drawResult = g_d2dDCRenderTarget->EndDraw();
         if (drawResult == static_cast<HRESULT>(0x8899000C))
             ReleaseD2DDeviceResources();
@@ -6167,6 +6240,10 @@ static void HideSelectorForSession()
     g_selectionExpansionDestinationRect = {};
     g_selectionExpansionSceneOffset = {};
     g_selectionExpansionProgress = 0.0f;
+    g_selectionExpansionStartCenter = {};
+    g_selectionExpansionStartSize = {};
+    g_selectionExpansionDestCenter = {};
+    g_selectionExpansionDestSize = {};
     g_hoveredSlot = -1;
     g_hoveredCloseButton = false;
     g_selectorOpening = false;
