@@ -8585,7 +8585,7 @@ const Theme g_themeOS26_Liquid_Glass_variant_DarkTaskbar = {{
     ThemeTargetStyles{L"Grid#IconPanel > Image#Icon, Taskbar.TaskListLabeledButtonPanel#IconPanel > Image#Icon", {
         L"Height=24",
         L"Width=24",
-        L"Margin=3.5,0,-3.5,0"}},
+        L"Margin=4,0,-4,0"}},
     ThemeTargetStyles{L"Taskbar.TaskListButtonPanel", {
         L"Width=52",
         L"Height=64"}},
@@ -8736,10 +8736,11 @@ const Theme g_themeOS26_Liquid_Glass_variant_DarkTaskbar = {{
         L"Fill:=#90ffffff",
         L"RadiusX=3",
         L"RadiusY=3",
-        L"Margin=-2",
-        L"Height=6",
+        L"Height=5",
         L"Width=6",
-        L"Margin=10,0,0,-2",
+        L"HorizontalAlignment=Center",
+        L"VerticalAlignment=Bottom",
+        L"Margin=0,0,0,1",
         L"Width@ActiveRunningIndicator=12",
         L"Fill@ActiveRunningIndicator=#60CDFF"}},
     ThemeTargetStyles{L"Grid#IconPanel > TextBlock#LabelControl, Taskbar.TaskListLabeledButtonPanel > TextBlock#LabelControl", {
