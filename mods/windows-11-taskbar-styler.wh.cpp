@@ -8576,32 +8576,101 @@ const Theme g_themeOS26_Liquid_Glass_variant_DarkMacDockCompact = {{
 }};
 
 const Theme g_themeOS26_Liquid_Glass_variant_DarkTaskbar = {{
+    // 1. Taskbar Base Frame: 56px height, vertically centered, recovering 24px of screen space
     ThemeTargetStyles{L"Taskbar.TaskbarFrame", {
-        L"Height=62",
-        L"MaxHeight=62",
-        L"HorizontalAlignment=Stretch"}},
+        L"Height=56",
+        L"MaxHeight=56",
+        L"HorizontalAlignment=Stretch",
+        L"VerticalAlignment=Center"}},
     ThemeTargetStyles{L"SystemTray.SystemTrayFrame", {
         L"VerticalAlignment=Center",
         L"HorizontalAlignment=Right"}},
+
+    // 2. Main App Icons: 24x24 centered dead-center in the 46x46 squarcle
     ThemeTargetStyles{L"Grid#IconPanel > Image#Icon, Taskbar.TaskListLabeledButtonPanel#IconPanel > Image#Icon", {
         L"Height=24",
         L"Width=24",
-        L"Margin=0",
+        L"HorizontalAlignment=Center",
+        L"VerticalAlignment=Center",
+        L"Margin=2,0,-2,0"}},
+
+    // 3. Start Button & System Animated Icons: Dead-center alignment
+    ThemeTargetStyles{L"Taskbar.ExperienceToggleButton#LaunchListButton[AutomationProperties.AutomationId=StartButton] > Taskbar.TaskListButtonPanel > Grid > Microsoft.UI.Xaml.Controls.AnimatedVisualPlayer#Icon, Taskbar.ExperienceToggleButton#LaunchListButton[AutomationProperties.AutomationId=StartButton] > Taskbar.TaskListButtonPanel > Microsoft.UI.Xaml.Controls.AnimatedVisualPlayer#Icon, Microsoft.UI.Xaml.Controls.AnimatedVisualPlayer#Icon", {
+        L"Height=20",
+        L"Width=20",
+        L"HorizontalAlignment=Center",
+        L"VerticalAlignment=Center",
+        L"Margin=0"}},
+
+    // 4. Button Panels: Perfectly symmetrical 46x46 squarcles
+    ThemeTargetStyles{L"Taskbar.TaskListButtonPanel", {
+        L"Width=46",
+        L"Height=46",
         L"HorizontalAlignment=Center",
         L"VerticalAlignment=Center"}},
-    ThemeTargetStyles{L"Taskbar.TaskListButtonPanel", {
-        L"Width=48",
-        L"Height=54"}},
     ThemeTargetStyles{L"Grid#IconPanel, Taskbar.TaskListLabeledButtonPanel", {
-        L"Width=48",
-        L"Height=54"}},
+        L"Width=46",
+        L"Height=46",
+        L"HorizontalAlignment=Center",
+        L"VerticalAlignment=Center"}},
     ThemeTargetStyles{L"SearchUx.SearchUI.SearchButtonControl > Grid > SearchUx.SearchUI.SearchIconButton > SearchUx.SearchUI.SearchButtonRootGrid#SearchBoxButtonRootPanel", {
-        L"Width=48",
-        L"Height=54"}},
+        L"Width=46",
+        L"Height=46",
+        L"HorizontalAlignment=Center",
+        L"VerticalAlignment=Center"}},
+
+    // 5. Curved Squarcle Background: 46x46 with CornerRadius=14, perfectly centered
+    ThemeTargetStyles{L"Taskbar.TaskListButtonPanel@CommonStates > Grid > Border#BackgroundElement, Taskbar.TaskListButtonPanel@CommonStates > Border#BackgroundElement", {
+        L"Width=46",
+        L"Height=46",
+        L"CornerRadius=14",
+        L"Margin=0",
+        L"HorizontalAlignment=Center",
+        L"VerticalAlignment=Center",
+        L"Background:=$IconBackground",
+        L"BorderBrush:=$IconBorder",
+        L"BorderThickness=1.2"}},
+    ThemeTargetStyles{L"Grid#IconPanel@CommonStates > Border#BackgroundElement, Taskbar.TaskListLabeledButtonPanel@CommonStates > Border#BackgroundElement", {
+        L"Width=46",
+        L"Height=46",
+        L"CornerRadius=14",
+        L"Margin=0",
+        L"HorizontalAlignment=Center",
+        L"VerticalAlignment=Center",
+        L"Background:=$IconBackground",
+        L"BorderBrush:=$IconBorder",
+        L"BorderThickness=1.2"}},
+    ThemeTargetStyles{L"SearchUx.SearchUI.SearchButtonControl > Grid > SearchUx.SearchUI.SearchIconButton > SearchUx.SearchUI.SearchButtonRootGrid#SearchBoxButtonRootPanel > Grid > Border#BackgroundElement, SearchUx.SearchUI.SearchButtonControl > Grid > SearchUx.SearchUI.SearchIconButton > SearchUx.SearchUI.SearchButtonRootGrid#SearchBoxButtonRootPanel > Border#BackgroundElement", {
+        L"Width=46",
+        L"Height=46",
+        L"CornerRadius=14",
+        L"Margin=0",
+        L"HorizontalAlignment=Center",
+        L"VerticalAlignment=Center",
+        L"Background:=$IconBackground",
+        L"BorderBrush:=$IconBorder",
+        L"BorderThickness=1.2"}},
+    ThemeTargetStyles{L"Taskbar.TaskListButton#TaskListButton[AutomationProperties.Name=Copilot] > Grid#IconPanel > Border#BackgroundElement, Taskbar.TaskListButton#TaskListButton[AutomationProperties.Name=Copilot] > Taskbar.TaskListLabeledButtonPanel#IconPanel > Border#BackgroundElement", {
+        L"Background:=$IconBackground"}},
+
+    // 6. Running Indicators (macOS style): 3px rounded dot centered under the icon
+    ThemeTargetStyles{L"Grid#IconPanel@RunningIndicatorStates > Rectangle#RunningIndicator, Taskbar.TaskListLabeledButtonPanel@RunningIndicatorStates > Rectangle#RunningIndicator", {
+        L"Fill:=#90ffffff",
+        L"RadiusX=1.5",
+        L"RadiusY=1.5",
+        L"Height=3",
+        L"Width=3",
+        L"Margin=0,0,0,2",
+        L"HorizontalAlignment=Center",
+        L"VerticalAlignment=Bottom",
+        L"Width@ActiveRunningIndicator=12",
+        L"Fill@ActiveRunningIndicator=#60CDFF"}},
+
+    // 7. Taskbar Background Bar
     ThemeTargetStyles{L"Grid#RootGrid > Taskbar.TaskbarBackground", {
         L"Margin=-15,0,-15,0"}},
     ThemeTargetStyles{L"Grid#RootGrid > Taskbar.TaskbarBackground > Grid", {
-        L"CornerRadius=18",
+        L"CornerRadius=16",
         L"Background:=<WindhawkBlur BlurAmount=\"12\" TintColor=\"#2D101010\"/>",
         L"BorderThickness=1",
         L"BorderBrush=#40FFFFFF",
@@ -8610,8 +8679,73 @@ const Theme g_themeOS26_Liquid_Glass_variant_DarkTaskbar = {{
         L"Fill=Transparent"}},
     ThemeTargetStyles{L"Taskbar.TaskbarFrame > Grid#RootGrid", {
         L"Visibility=Visible",
-        L"Margin=0,4,0,2",
-        L"Padding=16,0,16,0"}},
+        L"Margin=0",
+        L"Padding=16,0,16,0",
+        L"VerticalAlignment=Center"}},
+
+    // 8. System Tray on Taskbar: Sleek capsule on the right
+    ThemeTargetStyles{L"StackPanel#SystemTrayFrameGrid, Grid#SystemTrayFrameGrid", {
+        L"Width=Auto",
+        L"Height=38",
+        L"Background:=<WindhawkBlur BlurAmount=\"10\" TintColor=\"#2D101010\"/>",
+        L"CornerRadius=14",
+        L"Margin=0,2,8,2",
+        L"Padding=8,2",
+        L"BorderBrush:=<LinearGradientBrush EndPoint=\"1,1\" StartPoint=\"0,0\"><GradientStop Color=\"#50ffffff\" Offset=\"0.0\"/><GradientStop Color=\"#10ffffff\" Offset=\"0.5\"/><GradientStop Color=\"#30ffffff\" Offset=\"1.0\"/></LinearGradientBrush>",
+        L"BorderThickness=1.5",
+        L"VerticalAlignment=Center",
+        L"HorizontalAlignment=Right",
+        L"Visibility=Visible"}},
+    ThemeTargetStyles{L"SystemTray.NotifyIconView@CommonStates > Grid#ContainerGrid > Border#BackgroundBorder", {
+        L"CornerRadius=10",
+        L"Background:=$IconBackground",
+        L"BorderBrush:=$IconBorder",
+        L"Margin=2",
+        L"BorderThickness=1.2"}},
+    ThemeTargetStyles{L"SystemTray.NotifyIconView#NotifyItemIcon", {
+        L"Background:=<WindhawkBlur BlurAmount=\"10\" TintColor=\"#40ffffff\"/>",
+        L"CornerRadius=10",
+        L"Margin=2",
+        L"Padding=2",
+        L"BorderBrush:=<LinearGradientBrush EndPoint=\"1,0\" StartPoint=\"0,0\"><GradientStop Color=\"#80ffffff\" Offset=\"0.0\"/><GradientStop Color=\"{ThemeResource SurfaceStrokeColorDefault}\" Offset=\"0.55\"/><GradientStop Color=\"#80ffffff\" Offset=\"1\"/></LinearGradientBrush>",
+        L"BorderThickness=1.5"}},
+
+    // 9. Hidden Icons (Overflow Flyout): Perfectly centered curved squares
+    ThemeTargetStyles{L"Border#OverflowFlyoutBackgroundBorder", {
+        L"Background:=<WindhawkBlur BlurAmount=\"12\" TintColor=\"#2D101010\"/>",
+        L"BorderBrush:=<WindhawkBlur BlurAmount=\"8\" TintColor=\"#60ffffff\"/>",
+        L"BorderThickness=2",
+        L"CornerRadius=24",
+        L"Margin=-8"}},
+    ThemeTargetStyles{L"ScrollViewer > ScrollContentPresenter > Border > Grid > SystemTray.SystemTrayFrame > StackPanel#SystemTrayFrameGrid > SystemTray.Stack#NotifyIconStack > Grid#Content > SystemTray.StackListView#IconStack > ItemsPresenter > StackPanel > ContentPresenter > SystemTray.ChevronIconView > Grid#ContainerGrid > ContentPresenter#ContentPresenter > Grid#ContentGrid, ScrollViewer > ScrollContentPresenter > Border > Grid > SystemTray.SystemTrayFrame > Grid#SystemTrayFrameGrid > SystemTray.Stack#NotifyIconStack > Grid#Content > SystemTray.StackListView#IconStack > ItemsPresenter > StackPanel > ContentPresenter > SystemTray.ChevronIconView > Grid#ContainerGrid > ContentPresenter#ContentPresenter > Grid#ContentGrid", {
+        L"Height=36",
+        L"Width=36",
+        L"CornerRadius=10",
+        L"HorizontalAlignment=Center",
+        L"VerticalAlignment=Center",
+        L"Background:=$IconBackground",
+        L"BorderBrush:=$IconBorder",
+        L"BorderThickness=1.2"}},
+
+    // 10. Clock & Flyouts
+    ThemeTargetStyles{L"TextBlock#TimeInnerTextBlock", {
+        L"Foreground=White",
+        L"FontSize=13",
+        L"FontFamily=Segoe UI Variable Display, Segoe UI",
+        L"FontWeight=SemiBold",
+        L"Margin=4,0,4,0",
+        L"Padding=0",
+        L"VerticalAlignment=Center"}},
+    ThemeTargetStyles{L"TextBlock#DateInnerTextBlock", {
+        L"Visibility=Collapsed"}},
+    ThemeTargetStyles{L"SystemTray.TextIconContent > Grid > SystemTray.AdaptiveTextBlock#Base > TextBlock", {
+        L"Foreground=White"}},
+    ThemeTargetStyles{L"Taskbar.AugmentedEntryPointButton#AugmentedEntryPointButton", {
+        L"Margin=-6,0,0,0"}},
+    ThemeTargetStyles{L"Taskbar.TaskbarFrame > Grid#RootGrid > Taskbar.TaskbarBackground > Grid > Rectangle#BackgroundStroke", {
+        L"Visibility=Collapsed"}},
+    ThemeTargetStyles{L"Taskbar.TaskbarFrame > Grid#RootGrid > Taskbar.TaskbarBackground > Grid > Rectangle#BackgroundFill", {
+        L"Fill=Transparent"}},
     ThemeTargetStyles{L"Windows.UI.Xaml.Controls.FlyoutPresenter", {
         L"RequestedTheme=Dark",
         L"Background:=<WindhawkBlur BlurAmount=\"8\" TintColor=\"#2D101010\"/>",
@@ -8641,28 +8775,6 @@ const Theme g_themeOS26_Liquid_Glass_variant_DarkTaskbar = {{
         L"BorderThickness=2",
         L"CornerRadius=25",
         L"BorderBrush:=<WindhawkBlur BlurAmount=\"8\" TintColor=\"#30ffffff\"/>"}},
-    ThemeTargetStyles{L"ScrollViewer > ScrollContentPresenter > Border > Grid > SystemTray.SystemTrayFrame > StackPanel#SystemTrayFrameGrid > SystemTray.Stack#NotifyIconStack > Grid#Content > SystemTray.StackListView#IconStack > ItemsPresenter > StackPanel > ContentPresenter > SystemTray.ChevronIconView > Grid#ContainerGrid > ContentPresenter#ContentPresenter > Grid#ContentGrid, ScrollViewer > ScrollContentPresenter > Border > Grid > SystemTray.SystemTrayFrame > Grid#SystemTrayFrameGrid > SystemTray.Stack#NotifyIconStack > Grid#Content > SystemTray.StackListView#IconStack > ItemsPresenter > StackPanel > ContentPresenter > SystemTray.ChevronIconView > Grid#ContainerGrid > ContentPresenter#ContentPresenter > Grid#ContentGrid", {
-        L"Height=36",
-        L"Width=36",
-        L"CornerRadius=10",
-        L"Background:=$IconBackground",
-        L"BorderBrush:=$IconBorder",
-        L"BorderThickness=1.2"}},
-    ThemeTargetStyles{L"StackPanel#SystemTrayFrameGrid, Grid#SystemTrayFrameGrid", {
-        L"Width=Auto",
-        L"Background:=<WindhawkBlur BlurAmount=\"10\" TintColor=\"#2D101010\"/>",
-        L"CornerRadius=14",
-        L"Margin=0,2,8,2",
-        L"Padding=8,2",
-        L"BorderBrush:=<LinearGradientBrush EndPoint=\"1,1\" StartPoint=\"0,0\"><GradientStop Color=\"#50ffffff\" Offset=\"0.0\"/><GradientStop Color=\"#10ffffff\" Offset=\"0.5\"/><GradientStop Color=\"#30ffffff\" Offset=\"1.0\"/></LinearGradientBrush>",
-        L"BorderThickness=1.5",
-        L"Visibility=Visible"}},
-    ThemeTargetStyles{L"Taskbar.TaskListButtonPanel@CommonStates > Grid > Border#BackgroundElement, Taskbar.TaskListButtonPanel@CommonStates > Border#BackgroundElement", {
-        L"CornerRadius=14",
-        L"Margin=0,2,0,2",
-        L"Background:=$IconBackground",
-        L"BorderBrush:=$IconBorder",
-        L"BorderThickness=1.2"}},
     ThemeTargetStyles{L"Taskbar.TaskbarBackground#HoverFlyoutBackgroundControl > Grid > Rectangle#BackgroundStroke", {
         L"Fill:=<WindhawkBlur BlurAmount=\"3.5\" TintColor=\"#2D101010\"/>",
         L"Stroke:=<WindhawkBlur BlurAmount=\"8\" TintColor=\"#30ffffff\"/>",
@@ -8715,31 +8827,8 @@ const Theme g_themeOS26_Liquid_Glass_variant_DarkTaskbar = {{
         L"HorizontalAlignment=Center",
         L"Margin=0,-5,0,5",
         L"Canvas.ZIndex=1"}},
-    ThemeTargetStyles{L"SystemTray.NotifyIconView@CommonStates > Grid#ContainerGrid > Border#BackgroundBorder", {
-        L"CornerRadius=10",
-        L"Background:=$IconBackground",
-        L"BorderBrush:=$IconBorder",
-        L"Margin=2",
-        L"BorderThickness=1.2"}},
-    ThemeTargetStyles{L"Border#OverflowFlyoutBackgroundBorder", {
-        L"Background:=<WindhawkBlur BlurAmount=\"12\" TintColor=\"#2D101010\"/>",
-        L"BorderBrush:=<WindhawkBlur BlurAmount=\"8\" TintColor=\"#60ffffff\"/>",
-        L"BorderThickness=2",
-        L"CornerRadius=24",
-        L"Margin=-8"}},
     ThemeTargetStyles{L"SystemTray.OmniButton#ControlCenterButton > Grid > ContentPresenter > ItemsPresenter > StackPanel > ContentPresenter > SystemTray.IconView#SystemTrayIcon > Grid > Grid > SystemTray.TextIconContent", {
         L"CornerRadius=12"}},
-    ThemeTargetStyles{L"Grid#IconPanel@RunningIndicatorStates > Rectangle#RunningIndicator, Taskbar.TaskListLabeledButtonPanel@RunningIndicatorStates > Rectangle#RunningIndicator", {
-        L"Fill:=#90ffffff",
-        L"RadiusX=2",
-        L"RadiusY=2",
-        L"Height=4",
-        L"Width=4",
-        L"Margin=0,0,0,1",
-        L"HorizontalAlignment=Center",
-        L"VerticalAlignment=Bottom",
-        L"Width@ActiveRunningIndicator=14",
-        L"Fill@ActiveRunningIndicator=#60CDFF"}},
     ThemeTargetStyles{L"Grid#IconPanel > TextBlock#LabelControl, Taskbar.TaskListLabeledButtonPanel > TextBlock#LabelControl", {
         L"Margin=4,0,0,0",
         L"Foreground=White"}},
@@ -8754,50 +8843,8 @@ const Theme g_themeOS26_Liquid_Glass_variant_DarkTaskbar = {{
         L"Foreground=White"}},
     ThemeTargetStyles{L"Grid", {
         L"RequestedTheme=2"}},
-    ThemeTargetStyles{L"Taskbar.TaskListButton#TaskListButton[AutomationProperties.Name=Copilot] > Grid#IconPanel > Border#BackgroundElement, Taskbar.TaskListButton#TaskListButton[AutomationProperties.Name=Copilot] > Taskbar.TaskListLabeledButtonPanel#IconPanel > Border#BackgroundElement", {
-        L"Background:=$IconBackground"}},
     ThemeTargetStyles{L"Border#MultiWindowElement", {
         L"Visibility=Collapsed"}},
-    ThemeTargetStyles{L"TextBlock#TimeInnerTextBlock", {
-        L"Foreground=White",
-        L"FontSize=13",
-        L"FontFamily=Segoe UI Variable Display, Segoe UI",
-        L"FontWeight=SemiBold",
-        L"Margin=4,0,4,0",
-        L"Padding=0",
-        L"VerticalAlignment=Center"}},
-    ThemeTargetStyles{L"TextBlock#DateInnerTextBlock", {
-        L"Foreground=#B0FFFFFF",
-        L"Visibility=Collapsed",
-        L"FontSize=10",
-        L"FontFamily=Segoe UI Variable Text, Segoe UI"}},
-    ThemeTargetStyles{L"SystemTray.TextIconContent > Grid > SystemTray.AdaptiveTextBlock#Base > TextBlock", {
-        L"Foreground=White"}},
-    ThemeTargetStyles{L"Taskbar.AugmentedEntryPointButton#AugmentedEntryPointButton", {
-        L"Margin=-6,0,0,0"}},
-    ThemeTargetStyles{L"SearchUx.SearchUI.SearchButtonControl > Grid > SearchUx.SearchUI.SearchIconButton > SearchUx.SearchUI.SearchButtonRootGrid#SearchBoxButtonRootPanel > Grid > Border#BackgroundElement, SearchUx.SearchUI.SearchButtonControl > Grid > SearchUx.SearchUI.SearchIconButton > SearchUx.SearchUI.SearchButtonRootGrid#SearchBoxButtonRootPanel > Border#BackgroundElement", {
-        L"Margin=0,2,0,2",
-        L"CornerRadius=14",
-        L"Background:=$IconBackground",
-        L"BorderBrush:=$IconBorder",
-        L"BorderThickness=1.2"}},
-    ThemeTargetStyles{L"Grid#IconPanel@CommonStates > Border#BackgroundElement, Taskbar.TaskListLabeledButtonPanel@CommonStates > Border#BackgroundElement", {
-        L"CornerRadius=14",
-        L"Margin=0,2,0,2",
-        L"Background:=$IconBackground",
-        L"BorderBrush:=$IconBorder",
-        L"BorderThickness=1.2"}},
-    ThemeTargetStyles{L"Taskbar.TaskbarFrame > Grid#RootGrid > Taskbar.TaskbarBackground > Grid > Rectangle#BackgroundStroke", {
-        L"Visibility=Collapsed"}},
-    ThemeTargetStyles{L"Taskbar.TaskbarFrame > Grid#RootGrid > Taskbar.TaskbarBackground > Grid > Rectangle#BackgroundFill", {
-        L"Fill=Transparent"}},
-    ThemeTargetStyles{L"SystemTray.NotifyIconView#NotifyItemIcon", {
-        L"Background:=<WindhawkBlur BlurAmount=\"10\" TintColor=\"#40ffffff\"/>",
-        L"CornerRadius=10",
-        L"Margin=2",
-        L"Padding=2",
-        L"BorderBrush:=<LinearGradientBrush EndPoint=\"1,0\" StartPoint=\"0,0\"><GradientStop Color=\"#80ffffff\" Offset=\"0.0\"/><GradientStop Color=\"{ThemeResource SurfaceStrokeColorDefault}\" Offset=\"0.55\"/><GradientStop Color=\"#80ffffff\" Offset=\"1\"/></LinearGradientBrush>",
-        L"BorderThickness=1.5"}},
     ThemeTargetStyles{L"Windows.UI.Xaml.Controls.Grid#ConfirmatorMainGrid", {
         L"Background:=<WindhawkBlur BlurAmount=\"8\" TintColor=\"#2D101010\"/>",
         L"CornerRadius=24",
