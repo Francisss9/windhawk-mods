@@ -8577,8 +8577,8 @@ const Theme g_themeOS26_Liquid_Glass_variant_DarkMacDockCompact = {{
 
 const Theme g_themeOS26_Liquid_Glass_variant_DarkTaskbar = {{
     ThemeTargetStyles{L"Taskbar.TaskbarFrame", {
-        L"Height=80",
-        L"MaxHeight=80",
+        L"Height=70",
+        L"MaxHeight=70",
         L"HorizontalAlignment=Stretch"}},
     ThemeTargetStyles{L"SystemTray.SystemTrayFrame", {
         L"VerticalAlignment=Center"}},
@@ -8587,14 +8587,14 @@ const Theme g_themeOS26_Liquid_Glass_variant_DarkTaskbar = {{
         L"Width=24",
         L"Margin=5,0,-5,0"}},
     ThemeTargetStyles{L"Taskbar.TaskListButtonPanel", {
-        L"Width=55",
-        L"Height=70"}},
+        L"Width=52",
+        L"Height=64"}},
     ThemeTargetStyles{L"Grid#IconPanel, Taskbar.TaskListLabeledButtonPanel", {
-        L"Width=55",
-        L"Height=70"}},
+        L"Width=52",
+        L"Height=64"}},
     ThemeTargetStyles{L"SearchUx.SearchUI.SearchButtonControl > Grid > SearchUx.SearchUI.SearchIconButton > SearchUx.SearchUI.SearchButtonRootGrid#SearchBoxButtonRootPanel", {
-        L"Width=55",
-        L"Height=70"}},
+        L"Width=52",
+        L"Height=64"}},
     ThemeTargetStyles{L"Grid#RootGrid > Taskbar.TaskbarBackground", {
         L"Margin=-15,0,-15,0"}},
     ThemeTargetStyles{L"Grid#RootGrid > Taskbar.TaskbarBackground > Grid", {
@@ -8607,7 +8607,7 @@ const Theme g_themeOS26_Liquid_Glass_variant_DarkTaskbar = {{
         L"Fill=Transparent"}},
     ThemeTargetStyles{L"Taskbar.TaskbarFrame > Grid#RootGrid", {
         L"Visibility=Visible",
-        L"Margin=0,8,0,2",
+        L"Margin=0,2,0,2",
         L"Padding=20,0,20,0"}},
     ThemeTargetStyles{L"Windows.UI.Xaml.Controls.FlyoutPresenter", {
         L"RequestedTheme=Dark",
@@ -8656,7 +8656,7 @@ const Theme g_themeOS26_Liquid_Glass_variant_DarkTaskbar = {{
         L"Visibility=Visible"}},
     ThemeTargetStyles{L"Taskbar.TaskListButtonPanel@CommonStates > Grid > Border#BackgroundElement, Taskbar.TaskListButtonPanel@CommonStates > Border#BackgroundElement", {
         L"CornerRadius=15",
-        L"Margin=0,5.5,0,5.5",
+        L"Margin=0,3,0,3",
         L"Background:=$IconBackground",
         L"BorderBrush:=$IconBorder",
         L"BorderThickness=1.2"}},
@@ -8778,14 +8778,14 @@ const Theme g_themeOS26_Liquid_Glass_variant_DarkTaskbar = {{
     ThemeTargetStyles{L"Taskbar.AugmentedEntryPointButton#AugmentedEntryPointButton", {
         L"Margin=-12,0,0,0"}},
     ThemeTargetStyles{L"SearchUx.SearchUI.SearchButtonControl > Grid > SearchUx.SearchUI.SearchIconButton > SearchUx.SearchUI.SearchButtonRootGrid#SearchBoxButtonRootPanel > Grid > Border#BackgroundElement, SearchUx.SearchUI.SearchButtonControl > Grid > SearchUx.SearchUI.SearchIconButton > SearchUx.SearchUI.SearchButtonRootGrid#SearchBoxButtonRootPanel > Border#BackgroundElement", {
-        L"Margin=0,5.5,0,5.5",
+        L"Margin=0,3,0,3",
         L"CornerRadius=15",
         L"Background:=$IconBackground",
         L"BorderBrush:=$IconBorder",
         L"BorderThickness=1.2"}},
     ThemeTargetStyles{L"Grid#IconPanel@CommonStates > Border#BackgroundElement, Taskbar.TaskListLabeledButtonPanel@CommonStates > Border#BackgroundElement", {
         L"CornerRadius=15",
-        L"Margin=0,5.5,0,5.5",
+        L"Margin=0,3,0,3",
         L"Background:=$IconBackground",
         L"BorderBrush:=$IconBorder",
         L"BorderThickness=1.2"}},
