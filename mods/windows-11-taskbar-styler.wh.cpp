@@ -511,7 +511,7 @@ from the **TranslucentTB** project.
 
 // ==WindhawkModSettings==
 /*
-- theme: ""
+- theme: OS26_Liquid_Glass_variant_DarkTaskbar
   $name: Theme
   $description: >-
     Themes are collections of styles. For details about the themes below, or for
@@ -20948,6 +20948,9 @@ std::optional<bool> IsOsFeatureEnabled(UINT32 featureId) {
 
 void ProcessAllStylesFromSettings() {
     PCWSTR themeName = Wh_GetStringSetting(L"theme");
+    if (!themeName || !*themeName) {
+        themeName = L"OS26_Liquid_Glass_variant_DarkTaskbar";
+    }
     const Theme* theme = nullptr;
     if (wcscmp(themeName, L"TranslucentTaskbar") == 0) {
         theme = &g_themeTranslucentTaskbar;
