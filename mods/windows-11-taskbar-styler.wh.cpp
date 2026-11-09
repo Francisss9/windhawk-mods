@@ -8585,7 +8585,7 @@ const Theme g_themeOS26_Liquid_Glass_variant_DarkTaskbar = {{
     ThemeTargetStyles{L"Grid#IconPanel > Image#Icon, Taskbar.TaskListLabeledButtonPanel#IconPanel > Image#Icon", {
         L"Height=24",
         L"Width=24",
-        L"Margin=2,0,-2,0"}},
+        L"Margin=3.5,0,-3.5,0"}},
     ThemeTargetStyles{L"Taskbar.TaskListButtonPanel", {
         L"Width=52",
         L"Height=64"}},
