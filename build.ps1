@@ -41,8 +41,8 @@ if (-not (Test-Path $OutDir)) { New-Item -ItemType Directory -Path $OutDir -Forc
 $Out64 = Join-Path $OutDir "$ModName-x64.dll"
 $Out32 = Join-Path $OutDir "$ModName-x86.dll"
 
-$DefId = '-DWH_MOD_ID=L"' + $ModName + '"'
-$DefVer = '-DWH_MOD_VERSION=L"2.0.0"'
+$DefId = '-DWH_MOD_ID=L\"' + $ModName + '\"'
+$DefVer = '-DWH_MOD_VERSION=L\"2.0.0\"'
 
 Write-Host "[1/2] Compiling 64-bit (x86_64)..." -ForegroundColor Yellow
 & $Clang `
@@ -64,25 +64,29 @@ if ($LASTEXITCODE -ne 0) {
 }
 Write-Host "  -> OK: $Out64" -ForegroundColor Green
 
-Write-Host "[2/2] Compiling 32-bit (i686)..." -ForegroundColor Yellow
-& $Clang `
-    -std=c++23 -O2 -DUNICODE -D_UNICODE `
-    -DWINVER=0x0A00 -D_WIN32_WINNT=0x0A00 -D_WIN32_IE=0x0A00 -DNTDDI_VERSION=0x0A000008 `
-    -D__USE_MINGW_ANSI_STDIO=0 -DWH_MOD `
-    $DefId $DefVer `
-    -x c++ $ModFile `
-    -include (Join-Path $IncludeDir "windhawk_api.h") `
-    -target i686-w64-mingw32 `
-    -x none (Join-Path $LibDir32 "windhawk.lib") `
-    -Wno-ignored-attributes -shared "-Wl,--kill-at" -s `
-    $CompilerFlags `
-    -o $Out32
+if ($ModContent -match '//\s*@architecture\s+x86-64') {
+    Write-Host "[2/2] Skipping 32-bit build (@architecture x86-64 specified)" -ForegroundColor DarkGray
+} else {
+    Write-Host "[2/2] Compiling 32-bit (i686)..." -ForegroundColor Yellow
+    & $Clang `
+        -std=c++23 -O2 -DUNICODE -D_UNICODE `
+        -DWINVER=0x0A00 -D_WIN32_WINNT=0x0A00 -D_WIN32_IE=0x0A00 -DNTDDI_VERSION=0x0A000008 `
+        -D__USE_MINGW_ANSI_STDIO=0 -DWH_MOD `
+        $DefId $DefVer `
+        -x c++ $ModFile `
+        -include (Join-Path $IncludeDir "windhawk_api.h") `
+        -target i686-w64-mingw32 `
+        -x none (Join-Path $LibDir32 "windhawk.lib") `
+        -Wno-ignored-attributes -shared "-Wl,--kill-at" -s `
+        $CompilerFlags `
+        -o $Out32
 
-if ($LASTEXITCODE -ne 0) {
-    Write-Error "32-bit build failed with exit code $LASTEXITCODE"
-    exit $LASTEXITCODE
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "32-bit build failed with exit code $LASTEXITCODE"
+        exit $LASTEXITCODE
+    }
+    Write-Host "  -> OK: $Out32" -ForegroundColor Green
 }
-Write-Host "  -> OK: $Out32" -ForegroundColor Green
 
 if ($Clipboard) {
     Get-Content $ModFile -Raw | Set-Clipboard
