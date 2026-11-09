@@ -20947,7 +20947,8 @@ std::optional<bool> IsOsFeatureEnabled(UINT32 featureId) {
 }
 
 void ProcessAllStylesFromSettings() {
-    PCWSTR themeName = Wh_GetStringSetting(L"theme");
+    PCWSTR rawThemeSetting = Wh_GetStringSetting(L"theme");
+    PCWSTR themeName = rawThemeSetting;
     if (!themeName || !*themeName) {
         themeName = L"OS26_Liquid_Glass_variant_DarkTaskbar";
     }
@@ -21072,7 +21073,9 @@ void ProcessAllStylesFromSettings() {
     } else if (wcscmp(themeName, L"One_UI_8_5_variant_Taskbar") == 0) {
         theme = &g_themeOne_UI_8_5_variant_Taskbar;
     }
-    Wh_FreeStringSetting(themeName);
+    if (rawThemeSetting) {
+        Wh_FreeStringSetting(rawThemeSetting);
+    }
 
     StyleConstants styleConstants = LoadStyleConstants(
         theme ? theme->styleConstants : std::vector<PCWSTR>{});
