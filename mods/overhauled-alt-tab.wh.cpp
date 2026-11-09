@@ -2,8 +2,8 @@
 // @id              overhauled-alt-tab
 // @name            Overhauled Alt+Tab
 // @description     A modern, robust, and fluid window switcher for Windows 11 with Direct2D, per-window previews, and low latency.
-// @version         2.0.0
-// @author          Francisgomex (Based on IMiloDev)
+// @version         2.1.0
+// @author          Francisgomex (Based on IMiloDev, Bo0ii, and wygodad)
 // @github          https://github.com/Francisss9
 // @homepage        https://github.com/Francisss9/windhawk-mods
 // @include         windhawk.exe
@@ -13,11 +13,13 @@
 
 // ==WindhawkModReadme==
 /*
-# Overhauled Alt+Tab (v2.0.0 Overhaul)
+# Overhauled Alt+Tab (v2.1.0 Overhaul)
 
 A modern, fluid and highly visual replacement for the native Windows Alt+Tab experience on Windows 11.
 
-### Enhancements & Hardening in v2.0.0 by Francisgomex:
+### Enhancements & Hardening in v2.1.0 by Francisgomex:
+- **Centering & Opening Glitch Fix**: Eliminated spurious first-frame tab repeat and synchronised DWM thumbnail registrations, preventing selector jumping and duplicate window slot failures.
+- **Smart Multi-Monitor Cursor Warp**: Automatically warps the mouse cursor to the center of the newly activated window (or center of the display work area if maximized) across multi-monitor setups, configurable via Interaction settings.
 - **Zero GDI & COM Resource Leaks**: Direct2D/DirectWrite/GDI rendering pipelines encapsulated with strict RAII scopes.
 - **Dynamic Multi-Monitor & DPI Synchronization**: Auto-adapts selector coordinates and layout across multi-monitor setups upon WM_DPICHANGED and display geometry changes.
 - **Elevated Window Focus**: Overcomes Windows 11 foreground lock restrictions via AttachThreadInput bridging to reliably switch focus to administrative processes.
@@ -27,6 +29,7 @@ A modern, fluid and highly visual replacement for the native Windows Alt+Tab exp
 
 ## Credits & Attribution:
 - Original project and core visual architecture by **[IMiloDev](https://github.com/IMiloDev)** ([OverhauldedWin Repository](https://github.com/IMiloDev/OverhauldedWin)).
+- Additional contributions by **Bo0ii** and **wygodad**.
 - Maintained, audited, and overhauled by **[Francisgomex](https://github.com/Francisss9)** in the **[windhawk-mods](https://github.com/Francisss9/windhawk-mods)** repository.
 
 ---
@@ -237,6 +240,14 @@ Some applications may behave differently than standard desktop windows, especial
       $name: Opacity
       $description: DWM background opacity (0-100). Default - 20.
   $name: DWM background
+- Interaction:
+    - MoveCursorToActiveWindow: true
+      $name: Move cursor to active window
+      $name:pt-PT: Mover cursor para a janela ativa
+      $description: Automatically warps the mouse cursor to the center of the newly activated window (or center of the display work area if maximized) across multi-monitor setups.
+      $description:pt-PT: Move automaticamente o cursor do rato para o centro da janela recém-ativada (ou centro do ecrã se maximizada) em configurações com múltiplos monitores.
+  $name: Interaction
+  $name:pt-PT: Interação
 - ExperimentalSettings:
     - GeneralBackground: "none"
       $name: General Background
@@ -414,6 +425,7 @@ static const int kDefaultAnimationFps = 120;
 enum class AnimationStyle { Linear, Bouncy, Rct };
 static AnimationStyle g_animationStyle = AnimationStyle::Linear;
 static bool g_expandSelectedWindow = true;
+static bool g_moveCursorToActiveWindow = true;
 static int g_animationFps = kDefaultAnimationFps;
 
 static int GetCarouselCenterSlot() { return g_visibleCardCount / 2; }
@@ -469,6 +481,18 @@ static void LoadTaskSwitcherSettings()
                      : AnimationStyle::Linear;
     g_expandSelectedWindow =
         Wh_GetIntSetting(L"Appearance.Cards.ExpandSelectedWindow") != 0;
+
+    PCWSTR moveCursorSetting = Wh_GetStringSetting(L"Interaction.MoveCursorToActiveWindow");
+    if (moveCursorSetting)
+    {
+        g_moveCursorToActiveWindow = (wcscmp(moveCursorSetting, L"0") != 0 &&
+                                      _wcsicmp(moveCursorSetting, L"false") != 0);
+        Wh_FreeStringSetting(moveCursorSetting);
+    }
+    else
+    {
+        g_moveCursorToActiveWindow = true;
+    }
 
     // Background is the base layer and ExperimentalSettings.GeneralBackground
     // controls the optional overlay. Any base value other than "none" uses the
@@ -1138,6 +1162,7 @@ static void DestroySelector();
 static bool InitializePersistentSelector();
 static void HideSelectorForSession();
 static void ActivateWindow(HWND target);
+static void WarpCursorToWindow(HWND target);
 static HWND FocusRestoreTarget();
 static HWND GetNextGroupWindow(AppGroup& group);
 static void StartSlide(int steps);
@@ -3325,7 +3350,12 @@ static int ResolveGroupIndex(int slot)
     if (count <= 0)
         return -1;
 
-    int index = g_selected + (slot - GetCarouselCenterSlot());
+    int center = GetCarouselCenterSlot();
+    int distFromCenter = std::abs(slot - center);
+    if (count < GetCarouselSlotCount() && distFromCenter >= count)
+        return -1;
+
+    int index = g_selected + (slot - center);
     while (index < 0)
         index += count;
     while (index >= count)
@@ -3358,6 +3388,8 @@ static int GetSlotAtPoint(POINT ptClient)
     for (int i = 0; i < GetCarouselSlotCount(); ++i)
     {
         int slot = i;
+        if (ResolveGroupIndex(slot) < 0)
+            continue;
         RECT rc = GetSlotCardRect(slot);
         if (PtInRect(&rc, ptClient))
             return slot;
@@ -3640,15 +3672,53 @@ static void UpdateThumbnailSlots()
         return;
     }
 
-    for (int slot = 0; slot < GetCarouselSlotCount(); ++slot)
+    const int slotCount = GetCarouselSlotCount();
+    const int centerSlot = GetCarouselCenterSlot();
+
+    int slotOrder[kMaxCarouselSlots];
+    for (int i = 0; i < slotCount; ++i)
+        slotOrder[i] = i;
+
+    std::sort(slotOrder, slotOrder + slotCount, [](int a, int b) {
+        float distA = fabsf(static_cast<float>(a - GetCarouselCenterSlot()) + g_animOffset);
+        float distB = fabsf(static_cast<float>(b - GetCarouselCenterSlot()) + g_animOffset);
+        return distA < distB;
+    });
+
+    HWND registeredSources[kMaxCarouselSlots] = {};
+    int registeredCount = 0;
+
+    for (int i = 0; i < slotCount; ++i)
     {
+        int slot = slotOrder[i];
         int index = ResolveGroupIndex(slot);
-        HWND source = (index >= 0) ? g_groups[index].representativeWindow : nullptr;
+        HWND source = (index >= 0 && index < count) ? g_groups[index].representativeWindow : nullptr;
         if (!source || !IsWindow(source))
         {
             UnregisterThumbnailSlot(slot);
             continue;
         }
+
+        // DWM permits only one thumbnail per (destination, source) HWND pair.
+        // If a slot closer to the visual center has already claimed this source HWND,
+        // release this slot's thumbnail to avoid E_INVALIDARG registration collisions.
+        bool alreadyClaimed = false;
+        for (int r = 0; r < registeredCount; ++r)
+        {
+            if (registeredSources[r] == source)
+            {
+                alreadyClaimed = true;
+                break;
+            }
+        }
+
+        if (alreadyClaimed)
+        {
+            UnregisterThumbnailSlot(slot);
+            continue;
+        }
+
+        registeredSources[registeredCount++] = source;
 
         if (g_thumbnailSlots[slot].source != source)
         {
@@ -3664,7 +3734,7 @@ static void UpdateThumbnailSlots()
         RECT area = TransformSceneRect(GetSlotPreviewRect(slot));
         if (g_selectionExpansionActive)
         {
-            if (slot == GetCarouselCenterSlot())
+            if (slot == centerSlot)
                 area = g_selectionExpansionRect;
             else
                 area = RECT{ 0, 0, 0, 0 };
@@ -6296,6 +6366,67 @@ static HWND GetNextGroupWindow(AppGroup& group)
     return nullptr;
 }
 
+static void WarpCursorToWindow(HWND target)
+{
+    if (!g_moveCursorToActiveWindow || !target || !IsWindow(target))
+        return;
+
+    HMONITOR hMon = MonitorFromWindow(target, MONITOR_DEFAULTTONEAREST);
+    if (!hMon)
+    {
+        POINT ptCursor = {};
+        GetCursorPos(&ptCursor);
+        hMon = MonitorFromPoint(ptCursor, MONITOR_DEFAULTTOPRIMARY);
+    }
+
+    MONITORINFO mi = { sizeof(mi) };
+    if (!hMon || !GetMonitorInfoW(hMon, &mi))
+        return;
+
+    RECT rcTarget = {};
+    if (IsZoomed(target))
+    {
+        // Maximized windows occupy the display work area
+        rcTarget = mi.rcWork;
+    }
+    else if (IsIconic(target))
+    {
+        WINDOWPLACEMENT wp = { sizeof(wp) };
+        if (GetWindowPlacement(target, &wp) && wp.rcNormalPosition.right > wp.rcNormalPosition.left)
+            rcTarget = wp.rcNormalPosition;
+        else
+            rcTarget = mi.rcWork;
+    }
+    else
+    {
+        bool gotBounds = false;
+        if (LoadDwmFunctions() && g_dwmGetWindowAttribute)
+        {
+            RECT dwmRect = {};
+            if (SUCCEEDED(g_dwmGetWindowAttribute(target, kDwmWaExtendedFrameBounds,
+                                                  &dwmRect, sizeof(dwmRect))) &&
+                dwmRect.right > dwmRect.left && dwmRect.bottom > dwmRect.top)
+            {
+                rcTarget = dwmRect;
+                gotBounds = true;
+            }
+        }
+        if (!gotBounds)
+        {
+            GetWindowRect(target, &rcTarget);
+        }
+    }
+
+    int cx = (rcTarget.left + rcTarget.right) / 2;
+    int cy = (rcTarget.top + rcTarget.bottom) / 2;
+
+    // Safety clamp within monitor work area (8px margin from edges)
+    cx = std::max<int>(mi.rcWork.left + 8, std::min<int>(mi.rcWork.right - 8, cx));
+    cy = std::max<int>(mi.rcWork.top + 8, std::min<int>(mi.rcWork.bottom - 8, cy));
+
+    SetCursorPos(cx, cy);
+}
+
 // Solicita la activación al input thread sin bloquear el UI thread.
 static void ActivateWindow(HWND target)
 {
@@ -6316,6 +6447,8 @@ static void ActivateWindow(HWND target)
 
     SetForegroundWindow(target);
     SwitchToThisWindow(target, TRUE);
+
+    WarpCursorToWindow(target);
 
     // Keep input thread notification as background fallback/failsafe
     DWORD inputThreadId = g_inputThreadId;
@@ -6343,7 +6476,10 @@ static bool TryActivateWindowOnInputThread(HWND target)
     g_inputActivationLastSetForegroundResult = SetForegroundWindow(target);
     SwitchToThisWindow(target, TRUE);
     if (GetForegroundWindow() == target)
+    {
+        WarpCursorToWindow(target);
         return true;
+    }
 
     // No se bloquea el input thread esperando al hilo de la ventana destino.
     // SWP_ASYNCWINDOWPOS entrega el cambio de z-order de forma asíncrona.
@@ -6352,7 +6488,12 @@ static bool TryActivateWindowOnInputThread(HWND target)
                      SWP_ASYNCWINDOWPOS);
     g_inputActivationLastSetForegroundResult = SetForegroundWindow(target);
     SwitchToThisWindow(target, TRUE);
-    return GetForegroundWindow() == target;
+    if (GetForegroundWindow() == target)
+    {
+        WarpCursorToWindow(target);
+        return true;
+    }
+    return false;
 }
 
 // Esta función solo se ejecuta desde InputThreadProc / su WndProc.
@@ -6561,9 +6702,7 @@ static void UiOpen(LONG sessionId, bool shiftHeld, bool fromHotkey)
     UiSetInteractive(true);
     if (fromHotkey)
     {
-        // El hook no vio este Tab: no hay keyup que detenga un autorepeat.
         UiTakeForeground();
-        return;
     }
     g_uiTabDown = true;
     g_tabRepeatStarted = false;
